@@ -91,8 +91,28 @@
 
   /* crafted list */
   #crafted { font-size:12px; }
-  #crafted .cr { border-right:3px solid #4E8B7E; padding:5px 8px; margin-bottom:6px; background:rgba(78,139,126,0.1); }
+  #crafted .cr {
+    border-right:3px solid #4E8B7E; padding:8px 10px; margin-bottom:6px;
+    background:rgba(78,139,126,0.1); cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  #crafted .cr:active { background:rgba(78,139,126,0.3); }
+  #crafted .cr .cr-open { opacity:0.5; font-size:11px; }
   #crafted .cr-none { opacity:0.4; }
+
+  /* item detail */
+  #itCount { font-size:12px; margin-top:10px; opacity:0.7; letter-spacing:1px; }
+  #btnUse {
+    width:100%; margin-top:24px; padding:16px;
+    background:#B0553B; color:#E8E2D4; border:none;
+    font-family:inherit; font-size:16px; letter-spacing:3px; cursor:pointer;
+  }
+  #btnUse:active { background:#8f402c; }
+  #btnItemBack {
+    width:100%; margin-top:12px; padding:12px;
+    background:transparent; border:2px solid #45402F; color:#45402F;
+    font-family:inherit; font-size:13px; letter-spacing:2px; cursor:pointer;
+  }
 
   #btnReset { display:block; margin:24px auto 0; background:none; border:none; color:#45402F; opacity:0.4; font-family:inherit; font-size:11px; letter-spacing:1px; cursor:pointer; text-decoration:underline; }
 
@@ -281,6 +301,21 @@
   </div>
 </div>
 
+<!-- item detail -->
+<div class="overlay" id="itemScreen">
+  <div class="wrap2">
+    <div style="font-size:15px;letter-spacing:2px;border-bottom:2px solid #45402F;padding-bottom:8px;"><span class="diamond">◇</span> ITEM DATA</div>
+    <div id="itemCard2" style="border:2px solid #45402F;background:#DAD3C2;margin-top:20px;padding:18px;text-align:center;">
+      <div class="ic-icon" id="itIcon"></div>
+      <div class="ic-name" id="itName"></div>
+      <div class="ic-eff" id="itEff"></div>
+      <div id="itCount"></div>
+    </div>
+    <button id="btnUse">שימוש</button>
+    <button id="btnItemBack">◇ חזרה</button>
+  </div>
+</div>
+
 <!-- result -->
 <div class="overlay" id="resScreen">
   <div class="wrap2">
@@ -386,6 +421,7 @@
   var craftedCounts = {};
   var usedCodes = {};    // serials that were already scanned on this device
   var discovered = {};   // recipe ids the player has unlocked on this device
+  var seen = {};         // resources that were ever found — only these show in the inventory
   var currentRecipe = null;
 
   function isKnown(id){ return !!(DEFAULT_KNOWN[id] || discovered[id]); }
@@ -394,7 +430,7 @@
   function saveState(){
     try {
       localStorage.setItem('htb_craft', JSON.stringify({
-        inv: inv, crafted: craftedCounts, used: usedCodes, disc: discovered
+        inv: inv, crafted: craftedCounts, used: usedCodes, disc: discovered, seen: seen
       }));
     } catch(e){}
   }
@@ -408,6 +444,7 @@
         craftedCounts = d.crafted || {};
         usedCodes = d.used || {};
         discovered = d.disc || {};
+        seen = d.seen || {};
       }
     } catch(e){}
   }
@@ -496,10 +533,11 @@
   }
 
   function renderInv(){
-    var el = $('inv'), html = '', k, avail;
+    var el = $('inv'), html = '', k, avail, any = false;
     for (k in RES) {
-      /* רכיבים משודרגים מוצגים רק אם יש כאלה במלאי */
-      if (RES[k].up && (inv[k] || 0) <= 0) continue;
+      /* מוצגים רק רכיבים שנמצאו אי-פעם — והם נשארים גם כשנגמרים */
+      if (!seen[k]) continue;
+      any = true;
       avail = (inv[k] || 0) - countInSlots(k);
       html += '<div class="res' + (RES[k].rare ? ' rare' : '') + (RES[k].up ? ' up' : '') +
               (avail <= 0 ? ' zero' : '') +
@@ -507,6 +545,9 @@
               '<div class="r-count">×' + avail + '</div>' +
               '<div class="r-icon">' + RES[k].icon + '</div>' +
               '<div class="r-name">' + RES[k].name + '</div></div>';
+    }
+    if (!any) {
+      html = '<div style="width:100%;opacity:0.4;font-size:12px;padding:10px 0;">— המלאי ריק. סרקו רכיבים שמצאתם בשטח —</div>';
     }
     el.innerHTML = html;
     var nodes = el.getElementsByClassName('res'), i;
@@ -540,12 +581,65 @@
       k = craftedCounts[r.id] || 0;
       if (k > 0) {
         any = true;
-        html += '<div class="cr">' + r.icon + ' ' + r.name + ' ×' + k + '</div>';
+        html += '<div class="cr" data-id="' + r.id + '">' +
+                '<span>' + r.icon + ' ' + r.name + ' ×' + k + '</span>' +
+                '<span class="cr-open">‹ פרטים</span></div>';
       }
     }
     if (!any) html = '<div class="cr-none">— אין עדיין —</div>';
     el.innerHTML = html;
+    var nodes = el.getElementsByClassName('cr');
+    for (i = 0; i < nodes.length; i++) {
+      nodes[i].onclick = onCraftedTap;
+    }
   }
+
+  /* ---------- item detail + use ---------- */
+  var currentItemId = null;
+
+  function findRecipe(id){
+    for (var i = 0; i < RECIPES.length; i++) if (RECIPES[i].id === id) return RECIPES[i];
+    return null;
+  }
+
+  function onCraftedTap(){
+    var id = this.getAttribute('data-id');
+    var r = findRecipe(id);
+    if (!r || !(craftedCounts[id] > 0)) return;
+    currentItemId = id;
+    $('itIcon').innerHTML = r.icon;
+    $('itName').innerHTML = r.name;
+    $('itEff').innerHTML = r.eff;
+    $('itCount').innerHTML = 'ברשותך: ×' + craftedCounts[id];
+    $('mainScreen').style.display = 'none';
+    $('itemScreen').style.display = 'block';
+  }
+
+  $('btnUse').onclick = function(){
+    var id = currentItemId;
+    if (!id || !(craftedCounts[id] > 0)) return;
+    craftedCounts[id] = craftedCounts[id] - 1;
+    if (craftedCounts[id] <= 0) delete craftedCounts[id];
+    saveState();
+    beep(660, 80); setTimeout(function(){ beep(330, 200); }, 100);
+    var r = findRecipe(id);
+    $('itemScreen').style.display = 'none';
+    $('resScreen').style.display = 'block';
+    var tag = $('resTag');
+    tag.className = 'ok glitch';
+    tag.innerHTML = '◇ ITEM CONSUMED ◇';
+    $('icIcon').innerHTML = r.icon;
+    $('icName').innerHTML = r.name;
+    $('icEff').innerHTML = 'הפריט נוצל והוסר מהמלאי.';
+    currentItemId = null;
+  };
+
+  $('btnItemBack').onclick = function(){
+    currentItemId = null;
+    $('itemScreen').style.display = 'none';
+    $('mainScreen').style.display = 'block';
+    renderCrafted();
+  };
 
   function setMsg(text, cls){
     var el = $('msg');
@@ -588,6 +682,7 @@
     craftedCounts = {};
     usedCodes = {};
     discovered = {};
+    seen = {};
     saveState();
     setMsg('המלאי אותחל', 'ok');
     renderSlots(); renderInv(); renderCrafted(); renderRecipes();
@@ -799,6 +894,7 @@
     if (r.isUpgrade) {
       /* שדרוג: הרכיב המשודרג נכנס למלאי */
       inv[r.outKey] = (inv[r.outKey] || 0) + 1;
+      seen[r.outKey] = 1;
       tag.innerHTML = '◇ COMPONENT UPGRADED ◇';
       $('icEff').innerHTML = r.eff;
     } else {
@@ -877,6 +973,7 @@
     if (code && usedCodes[code]) return { ok:false, msg:'הרכיב הזה כבר נסרק' };
     if (code) usedCodes[code] = 1;
     inv[key] = (inv[key] || 0) + 1;
+    seen[key] = 1;
     saveState();
     renderInv();
     return { ok:true, msg:'+1 ' + RES[key].name };
