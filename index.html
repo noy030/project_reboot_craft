@@ -129,23 +129,55 @@
   #mgStage { font-size:12px; margin-top:14px; opacity:0.7; letter-spacing:1px; }
   #mgComp { font-size:16px; margin-top:4px; }
 
-  #barWrap { margin-top:26px; direction:ltr; }
-  #bar {
-    position:relative; height:52px; border:2px solid #45402F; background:#DAD3C2; overflow:hidden;
+  #barWrap { margin-top:20px; }
+  /* socket + part */
+  #socket {
+    position:relative; width:160px; height:160px; margin:0 auto;
+    border:2px dashed rgba(69,64,47,0.45); background:rgba(69,64,47,0.04);
   }
-  #zone { position:absolute; top:0; bottom:0; background:rgba(78,139,126,0.45); border-left:2px solid #4E8B7E; border-right:2px solid #4E8B7E; }
-  #needle { position:absolute; top:0; bottom:0; width:3px; background:#B0553B; }
-  #bar.hit #zone { background:#4E8B7E; }
-  #bar.miss { background:#B0553B; }
+  #socketNotch {
+    position:absolute; top:-2px; left:50%; margin-left:-9px;
+    width:18px; height:8px; background:#4E8B7E;
+  }
+  #part {
+    position:absolute; top:14px; left:14px; right:14px; bottom:14px;
+    border:2px solid #45402F; background:#DAD3C2;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-transition:-webkit-transform 0.18s; transition:transform 0.18s;
+    cursor:pointer;
+  }
+  #part .p-icon { font-size:44px; }
+  #partNotch {
+    position:absolute; top:-2px; left:50%; margin-left:-9px;
+    width:18px; height:8px; background:#B0553B;
+  }
+  #socket.aligned #partNotch { background:#4E8B7E; }
+  #socket.aligned #part { border-color:#4E8B7E; }
+  #socket.done #part { background:rgba(78,139,126,0.35); border-color:#4E8B7E; }
 
-  #btnLock {
-    width:100%; margin-top:22px; padding:18px;
-    background:#45402F; color:#E8E2D4; border:none;
-    font-family:inherit; font-size:17px; letter-spacing:4px; cursor:pointer;
+  /* torque gauge */
+  #torqueWrap { margin-top:20px; direction:ltr; }
+  #torqueBar {
+    position:relative; height:34px; border:2px solid #45402F; background:#DAD3C2; overflow:hidden;
   }
-  #btnLock:active { background:#4E8B7E; }
-  #mgHint { font-size:11px; text-align:center; opacity:0.55; margin-top:10px; letter-spacing:1px; }
-  #pips { margin-top:18px; text-align:center; letter-spacing:8px; font-size:16px; }
+  #torqueZone { position:absolute; top:0; bottom:0; background:rgba(78,139,126,0.45); border-left:2px solid #4E8B7E; border-right:2px solid #4E8B7E; }
+  #torqueFill { position:absolute; top:0; bottom:0; left:0; width:0%; background:rgba(69,64,47,0.55); }
+  #torqueBar.hit #torqueZone { background:#4E8B7E; }
+  #torqueBar.miss #torqueFill { background:#B0553B; }
+
+  #mgBtns { display:flex; gap:10px; margin-top:20px; }
+  #btnRotate, #btnFasten {
+    flex:1; padding:16px 6px; border:none;
+    font-family:inherit; font-size:15px; letter-spacing:2px; cursor:pointer;
+  }
+  #btnRotate { background:transparent; border:2px solid #45402F; color:#45402F; }
+  #btnRotate:active { background:#DAD3C2; }
+  #btnFasten { background:#45402F; color:#E8E2D4; }
+  #btnFasten:active { background:#4E8B7E; }
+  #btnFasten:disabled { opacity:0.3; }
+  #mgHint { font-size:11px; text-align:center; opacity:0.6; margin-top:12px; letter-spacing:1px; min-height:16px; }
+  #mgMistakes { font-size:12px; text-align:center; margin-top:6px; color:#B0553B; letter-spacing:1px; min-height:16px; }
+  #pips { margin-top:14px; text-align:center; letter-spacing:8px; font-size:16px; }
   .pip-done { color:#4E8B7E; }
   .pip-todo { opacity:0.3; }
 
@@ -204,18 +236,31 @@
 <!-- minigame -->
 <div class="overlay" id="mgScreen">
   <div class="wrap2">
-    <div id="mgTitle"><span class="diamond">◇</span> CALIBRATION SEQUENCE</div>
+    <div id="mgTitle"><span class="diamond">◇</span> ASSEMBLY SEQUENCE</div>
     <div id="mgStage"></div>
     <div id="mgComp"></div>
     <div id="barWrap">
-      <div id="bar">
-        <div id="zone"></div>
-        <div id="needle"></div>
+      <div id="socket">
+        <div id="socketNotch"></div>
+        <div id="part">
+          <span class="p-icon" id="partIcon"></span>
+          <div id="partNotch"></div>
+        </div>
       </div>
     </div>
+    <div id="torqueWrap">
+      <div id="torqueBar">
+        <div id="torqueZone"></div>
+        <div id="torqueFill"></div>
+      </div>
+    </div>
+    <div id="mgBtns">
+      <button id="btnRotate">↻ סובב</button>
+      <button id="btnFasten" disabled>◈ הברג (החזק)</button>
+    </div>
+    <div id="mgHint"></div>
+    <div id="mgMistakes"></div>
     <div id="pips"></div>
-    <button id="btnLock">נעל ◈</button>
-    <div id="mgHint">עצור את המחוג בתוך האזור המסומן</div>
   </div>
 </div>
 
@@ -259,22 +304,33 @@
     wood:    { name:'ענפי עץ',       icon:'♣', rare:false },
     gear:    { name:'גלגל שיניים',   icon:'⚙', rare:false },
     cable:   { name:'כבל',           icon:'∿', rare:false },
-    oil:     { name:'טיפת שמן',           icon:'●', rare:false },
+    oil:     { name:'שמן',           icon:'●', rare:false },
     board:   { name:'לוח אלקטרוני',  icon:'▦', rare:false },
-    fabric:  { name:'פיסת בד',            icon:'▤', rare:false },
+    fabric:  { name:'בד',            icon:'▤', rare:false },
     metal:   { name:'מטיל מתכת',     icon:'▬', rare:false },
     gold:    { name:'מטיל זהב',      icon:'◆', rare:true  },
     alum:    { name:'אלומיניום',     icon:'▭', rare:false },
     copper:  { name:'נחושת',         icon:'◎', rare:false },
     leather: { name:'פיסת עור',      icon:'◈', rare:false }
   };
-  /* רכיבים משודרגים: 5× מאותו רכיב בסיסי ← 1 רכיב משודרג (★) */
+  /* רכיבים משודרגים: 5× מאותו רכיב בסיסי ← החומר המעובד שלו */
+  var UPGRADES = {
+    wood:    'לוחות עץ',
+    gear:    'תיבת הילוכים',
+    cable:   'צמת כבלים',
+    oil:     'גלון שמן',
+    board:   'מעבד ראשי',
+    fabric:  'גליל בד',
+    metal:   'פלדה מחוסמת',
+    gold:    'זהב מזוקק',
+    alum:    'סגסוגת אלומיניום',
+    copper:  'סליל נחושת',
+    leather: 'עור מעובד'
+  };
   (function(){
-    var k, base = [];
-    for (k in RES) base.push(k);
-    for (var i = 0; i < base.length; i++) {
-      k = base[i];
-      RES[k + '2'] = { name: RES[k].name + ' ★', icon: RES[k].icon, rare: false, up: true };
+    var k;
+    for (k in UPGRADES) {
+      RES[k + '2'] = { name: UPGRADES[k], icon: RES[k].icon, rare: false, up: true };
     }
   })();
   var UPGRADE_COUNT = 5;
@@ -321,18 +377,24 @@
 
   var MAX_SLOTS = 5;
 
+  /* סכמות שמוצגות לכולם מההתחלה. כל השאר מוסתרות כ-??? עד שמגלים אותן בהרכבה מוצלחת */
+  var DEFAULT_KNOWN = { heal1:1, carry:1 };
+
   /* ---------- state ---------- */
   var inv = {};
   var slots = [];        // array of resource keys
   var craftedCounts = {};
   var usedCodes = {};    // serials that were already scanned on this device
+  var discovered = {};   // recipe ids the player has unlocked on this device
   var currentRecipe = null;
+
+  function isKnown(id){ return !!(DEFAULT_KNOWN[id] || discovered[id]); }
 
   /* ---------- persistence (localStorage, safe fallback) ---------- */
   function saveState(){
     try {
       localStorage.setItem('htb_craft', JSON.stringify({
-        inv: inv, crafted: craftedCounts, used: usedCodes
+        inv: inv, crafted: craftedCounts, used: usedCodes, disc: discovered
       }));
     } catch(e){}
   }
@@ -345,6 +407,7 @@
         inv = d.inv;
         craftedCounts = d.crafted || {};
         usedCodes = d.used || {};
+        discovered = d.disc || {};
       }
     } catch(e){}
   }
@@ -396,7 +459,7 @@
           outKey: first + '2',
           icon: RES[first].icon,
           name: RES[first + '2'].name,
-          eff: 'רכיב משודרג נוסף למלאי. משמש במתכוני-העל.'
+          eff: 'החומר המעובד נוסף למלאי. משמש במתכוני-העל.'
         };
       }
     }
@@ -453,13 +516,19 @@
   }
 
   function renderRecipes(){
-    var el = $('recipes'), html = '', i, r, k, parts;
-    html += '<div class="rc"><b>שדרוג רכיב:</b> 5× מאותו רכיב ← <span class="rc-out">רכיב משודרג ★</span></div>';
+    var el = $('recipes'), html = '', i, r, k, parts, hidden = 0;
+    /* 1 — שדרוג רכיב (ידוע תמיד) */
+    html += '<div class="rc"><b>שדרוג רכיב:</b> 5× מאותו רכיב ← <span class="rc-out">החומר המעובד שלו</span> (למשל 5× שמן ← גלון שמן, 5× ענפי עץ ← לוחות עץ)</div>';
     for (i = 0; i < RECIPES.length; i++) {
-      r = RECIPES[i]; parts = [];
+      r = RECIPES[i];
+      if (!isKnown(r.id)) { hidden++; continue; }
+      parts = [];
       for (k in r.need) parts.push(r.need[k] + '× ' + RES[k].name);
       html += '<div class="rc">' + parts.join(' + ') +
               ' ← <span class="rc-out">' + r.icon + ' ' + r.name + '</span></div>';
+    }
+    if (hidden > 0) {
+      html += '<div class="rc" style="opacity:0.55;">??? — סכמות נוספות ממתינות לגילוי. נסו שילובים חדשים של רכיבים.</div>';
     }
     el.innerHTML = html;
   }
@@ -518,9 +587,10 @@
     slots = [];
     craftedCounts = {};
     usedCodes = {};
+    discovered = {};
     saveState();
     setMsg('המלאי אותחל', 'ok');
-    renderSlots(); renderInv(); renderCrafted();
+    renderSlots(); renderInv(); renderCrafted(); renderRecipes();
   };
 
   $('btnAssemble').onclick = function(){
@@ -536,14 +606,21 @@
     startMinigame(r);
   };
 
-  /* ---------- minigame ---------- */
-  var mg = { stage:0, total:0, t:0, dir:1, speed:0, zoneL:0, zoneW:0, running:false, raf:null, last:0 };
+  /* ---------- minigame: assembly (rotate + fasten) ---------- */
+  var MAX_MISTAKES = 3;
+  var mg = {
+    stage:0, total:0, rot:0, aligned:false,
+    filling:false, fill:0, last:0, raf:null,
+    zoneL:0, zoneW:0, mistakes:0, busy:false
+  };
 
   function startMinigame(recipe){
     mg.total = slots.length;
     mg.stage = 0;
+    mg.mistakes = 0;
     $('mainScreen').style.display = 'none';
     $('mgScreen').style.display = 'block';
+    renderMistakes();
     nextStage();
   }
 
@@ -551,15 +628,40 @@
     var key = slots[mg.stage];
     $('mgStage').innerHTML = 'רכיב ' + (mg.stage + 1) + ' / ' + mg.total;
     $('mgComp').innerHTML = RES[key].icon + ' ' + RES[key].name;
+    $('partIcon').innerHTML = RES[key].icon;
     renderPips();
-    mg.zoneW = Math.max(24 - mg.stage * 3, 12);
-    mg.zoneL = 8 + Math.random() * (84 - mg.zoneW);
-    mg.speed = 0.8 + mg.stage * 0.22; /* full sweeps per second */
-    mg.t = 0; mg.dir = 1; mg.running = true; mg.last = 0;
-    $('zone').style.left = mg.zoneL + '%';
-    $('zone').style.width = mg.zoneW + '%';
-    $('bar').className = '';
-    loop();
+
+    /* התחלה מסובבת: 1-3 רבעי סיבוב */
+    mg.rot = 90 * (1 + Math.floor(Math.random() * 3));
+    mg.aligned = false;
+    mg.busy = false;
+    applyRot();
+
+    /* אזור ההידוק: רחב ונדיב, מצטמצם מעט מרכיב לרכיב */
+    mg.zoneW = Math.max(34 - mg.stage * 2, 26);
+    mg.zoneL = 48 + Math.random() * (94 - mg.zoneW - 48);
+    mg.fill = 0; mg.filling = false;
+    $('torqueZone').style.left = mg.zoneL + '%';
+    $('torqueZone').style.width = mg.zoneW + '%';
+    $('torqueFill').style.width = '0%';
+    $('torqueBar').className = '';
+    $('socket').className = '';
+    $('btnFasten').disabled = true;
+    $('mgHint').innerHTML = 'סובב את הרכיב עד שהסימון מתיישר עם השקע';
+  }
+
+  function applyRot(){
+    var p = $('part');
+    var t = 'rotate(' + mg.rot + 'deg)';
+    p.style.webkitTransform = t;
+    p.style.transform = t;
+    if (mg.rot % 360 === 0) {
+      mg.aligned = true;
+      $('socket').className = 'aligned';
+      $('btnFasten').disabled = false;
+      $('mgHint').innerHTML = 'מיושר! החזק את כפתור ההברגה ושחרר בתוך האזור הירוק';
+      beep(660, 70);
+    }
   }
 
   function renderPips(){
@@ -570,49 +672,113 @@
     $('pips').innerHTML = html;
   }
 
-  function loop(){
-    if (!mg.running) return;
+  function renderMistakes(){
+    var html = '', i;
+    if (mg.mistakes > 0) {
+      html = 'שגיאות: ';
+      for (i = 0; i < MAX_MISTAKES; i++) html += (i < mg.mistakes) ? '✕' : '·';
+    }
+    $('mgMistakes').innerHTML = html;
+  }
+
+  $('btnRotate').onclick = function(){
+    if (mg.busy || mg.aligned) return;
+    mg.rot += 90;
+    beep(440, 40);
+    applyRot();
+  };
+  $('part').onclick = function(){
+    if (mg.busy || mg.aligned) return;
+    mg.rot += 90;
+    beep(440, 40);
+    applyRot();
+  };
+
+  /* torque hold */
+  function fillLoop(){
+    if (!mg.filling) return;
     var now = (new Date()).getTime();
     if (!mg.last) mg.last = now;
     var dt = (now - mg.last) / 1000;
     mg.last = now;
-    mg.t += mg.dir * mg.speed * 2 * dt; /* 0..1 ping-pong */
-    if (mg.t > 1) { mg.t = 1; mg.dir = -1; }
-    if (mg.t < 0) { mg.t = 0; mg.dir = 1; }
-    $('needle').style.left = (mg.t * 100) + '%';
+    mg.fill += 55 * dt; /* אחוזים לשנייה */
+    if (mg.fill >= 100) {
+      mg.fill = 100;
+      mg.filling = false;
+      $('torqueFill').style.width = '100%';
+      torqueResult(false, 'הידוק יתר! ההברגה נשחקה');
+      return;
+    }
+    $('torqueFill').style.width = mg.fill + '%';
     if (window.requestAnimationFrame) {
-      mg.raf = window.requestAnimationFrame(loop);
+      mg.raf = window.requestAnimationFrame(fillLoop);
     } else {
-      mg.raf = setTimeout(loop, 16);
+      mg.raf = setTimeout(fillLoop, 16);
     }
   }
 
-  function stopLoop(){
-    mg.running = false;
-    if (window.cancelAnimationFrame && mg.raf) window.cancelAnimationFrame(mg.raf);
-    if (!window.requestAnimationFrame && mg.raf) clearTimeout(mg.raf);
+  function fastenStart(ev){
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (!mg.aligned || mg.busy || mg.filling) return;
+    mg.fill = 0; mg.last = 0; mg.filling = true;
+    $('torqueBar').className = '';
+    fillLoop();
   }
 
-  $('btnLock').onclick = function(){
-    if (!mg.running) return;
-    stopLoop();
-    var pos = mg.t * 100;
-    var hit = (pos >= mg.zoneL && pos <= mg.zoneL + mg.zoneW);
-    if (hit) {
+  function fastenEnd(ev){
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (!mg.filling) return;
+    mg.filling = false;
+    var inZone = (mg.fill >= mg.zoneL && mg.fill <= mg.zoneL + mg.zoneW);
+    if (inZone) {
+      torqueResult(true, '');
+    } else {
+      torqueResult(false, mg.fill < mg.zoneL ? 'הידוק חלש מדי' : 'הידוק חזק מדי');
+    }
+  }
+
+  function torqueResult(ok, failMsg){
+    mg.busy = true;
+    if (ok) {
       beep(880, 120);
-      $('bar').className = 'hit';
+      $('torqueBar').className = 'hit';
+      $('socket').className = 'done';
+      $('mgHint').innerHTML = '◇ הרכיב הותקן';
       mg.stage++;
       if (mg.stage >= mg.total) {
-        setTimeout(craftSuccess, 500);
+        setTimeout(craftSuccess, 600);
       } else {
-        setTimeout(nextStage, 550);
+        setTimeout(nextStage, 650);
       }
     } else {
-      beep(150, 350);
-      $('bar').className = 'miss';
-      setTimeout(craftFail, 600);
+      beep(180, 250);
+      $('torqueBar').className = 'miss';
+      mg.mistakes++;
+      renderMistakes();
+      if (mg.mistakes >= MAX_MISTAKES) {
+        $('mgHint').innerHTML = '◈ ' + failMsg;
+        setTimeout(craftFail, 700);
+      } else {
+        $('mgHint').innerHTML = '◈ ' + failMsg + ' — נסה שוב';
+        setTimeout(function(){
+          mg.busy = false;
+          mg.fill = 0;
+          $('torqueFill').style.width = '0%';
+          $('torqueBar').className = '';
+        }, 650);
+      }
     }
-  };
+  }
+
+  (function(){
+    var b = $('btnFasten');
+    b.ontouchstart = fastenStart;
+    b.ontouchend = fastenEnd;
+    b.ontouchcancel = fastenEnd;
+    b.onmousedown = fastenStart;
+    b.onmouseup = fastenEnd;
+    b.onmouseleave = function(){ if (mg.filling) fastenEnd(); };
+  })();
 
   /* ---------- results ---------- */
   function craftSuccess(){
@@ -638,7 +804,14 @@
     } else {
       craftedCounts[r.id] = (craftedCounts[r.id] || 0) + 1;
       tag.innerHTML = '◇ UNIT ASSEMBLED ◇';
-      $('icEff').innerHTML = r.eff + '<br><br>הצג מסך זה למגירת הפריטים בעמדה.';
+      var extra = '<br><br>הצג מסך זה למגירת הפריטים בעמדה.';
+      /* גילוי סכמה: מתכון שהורכב לראשונה נחשף ומצטרף לרשימת הסכמות במכשיר */
+      if (!isKnown(r.id)) {
+        discovered[r.id] = 1;
+        renderRecipes();
+        extra += '<br><span style="color:#4E8B7E;">◇ סכמה חדשה התגלתה! היא נוספה לרשימת הסכמות שלך.</span>';
+      }
+      $('icEff').innerHTML = r.eff + extra;
     }
     saveState();
     beep(660, 90); setTimeout(function(){ beep(880, 90); }, 120); setTimeout(function(){ beep(1100, 150); }, 260);
@@ -812,4 +985,5 @@
 </script>
 </body>
 </html>
+
 
